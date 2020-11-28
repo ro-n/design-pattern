@@ -1,0 +1,10 @@
+Command Pattern Exercise
+========================
+
+Consider such a case, in which you need to control a printer and a WiFi router. As we know, printer and router take a warmup time before they can work normally. You are required to invoke the services offered by these two devices through a uniform interface.
+
+You can get the service of printer by its print(), and get the service of router by its connect().
+
+Suppose that you need to boot up both devices whenever you have some work of printing and accessing Internet. If you’ve invoked the services of both devices but find you should leave your office, then you will cancel such invoking at once to stop the warmup procedure of these two devices.
+
+Code with the Command Pattern to mimic the above behaviors of service invoking and canceling.

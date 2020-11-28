@@ -1,0 +1,240 @@
+\documentclass[a4paper]{article}
+
+\usepackage{titlesec}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[margin=1.2in]{geometry}
+
+\usepackage{amssymb,amsmath}
+
+\usepackage[colorlinks=true,
+            allcolors=green]{hyperref}
+
+\newcommand{\kora}{%
+(\raisebox{0.5em}{\rotatebox{-45}{)}}$^{\circ}{\scriptscriptstyle\Box}^{\circ}$)\raisebox{0.5em}{\rotatebox{-45}{)}}\rotatebox{90}{)}\raisebox{0.2em}{\LARGE \_\hskip-.1em\textvisiblespace\hskip-.1em\_}
+}
+
+\title{Analysis of Simple Factory Pattern and Factory Pattern}
+
+\makeatletter
+\renewcommand{\maketitle}{\bgroup\setlength{\parindent}{0pt}
+    \begin{center}
+
+        \textbf{\huge\@title} \\[12pt]
+
+        \par\vspace{\baselineskip}
+    \end{center}
+
+\egroup}
+\makeatother
+
+\titleformat{\section}
+{\large\bfseries}
+{\thesection}
+{0.5em}
+{}
+
+\lstset{
+    frame=single
+}
+
+\begin{document}
+\maketitle
+
+\section{Analysis of Assignment}
+
+In this assignment, we are required to analyse the condition of the reduction
+from a \textit{Factory Pattern} to a \textit{Simple Factory Pattern}. Considering
+answering ``When'' and ``How'' to accomplish the degradation, one need three
+basic theory to explain this work. First is the paradigm of creating \textit{Simple Factory Pattern},
+second is the paradigm of implementing \textit{Factory Pattern} and the third is
+the detailed way we harbour to make the former evolve to latter. Note that all
+discussions are based on condition discribed in section \ref{define}.
+
+\section{Simple Factory Pattern and Factory Pattern}\label{define}
+
+To illustrate the problem discussed above, we visualize the relationship
+of classes, concrete objects and interfaces of the two patterns as below (Figure \ref{simple_fty}
+for \textit{Simple Factory Pattern } and figure \ref{fty} for \textit{Factory Pattern} with description in
+section \ref{code}). To be specific, the former concretes its case switching in
+the unmoving class in the \texttt{SimpleFactory} while we extract the ``Factory'' level of
+the second design to substantiate an interface (as well as an abstract class in some degree),
+with the first design, it's more convenient for the client but is a trade-off with scalability.
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=0.6\textwidth]{simple_fty_pattern.png}
+\end{center}
+\caption{Simple Factory Pattern}
+\label{simple_fty}
+\end{figure}
+
+As it shows, \textit{Factory Pattern} is different from the aspect of ``Factory'' level,
+During a single runtime, one can only produce certain type of products,
+and to add new product (no matter the brand or process of producing is different), programmer should
+modify a concrete class like \texttt{SimpleFactory}.
+
+\begin{figure}[h]
+\begin{center}
+\includegraphics[width=0.6\textwidth]{fty_pattern.png}
+\end{center}
+\caption{Factory Pattern}
+\label{fty}
+\end{figure}
+
+Paradigm is changed when it comes to \textit{Factory Pattern}. There exists abstraction of products (\texttt{Product}),
+as well as the delayed implementing of ``case switching'' in all kinds of creator as an interface (\texttt{Factory}).
+With this pattern, one can build the same amount of sorts of products with limited types of classes compared
+to the simple pattern, but altering the factorys (various channels of producing things) to create
+multiple products at runtime
+\footnote{It's also supported for \textit{Simple Factory Pattern} to build various objects at runtime  with a wrapper with a factory setter.} with ease.
+
+As for editing, to create a new class (new factory), one only have to
+make the new class inherited from the abstraction (\texttt{Dependency Reverse}) and
+should and will not reconstruct the backbone of the original design (\texttt{Open Close}).
+
+\section{Condition of Reduction} \label{condition}
+
+Now it's easier to discuss the situation we are faced with, to begin with,
+if we are based on ``producing products'', and if there are:
+
+\begin{itemize}
+    \item Certain and limited types of products that the factory should
+        produce with no extraction of the abstraction.
+        ``Factory'' downgrades to ``Simple Factory'', automatically.
+    \item The number of abstraction level is only ONE, like all the products are ``TV'', among which differences are only various brands,
+        then only implementing the \texttt{TVFactory} should be fine
+        \footnote{\texttt{AppleTV} and \texttt{HaierFridge} have an abstraction level of brand,
+        as well as the types of machine, totally two levels.}.
+\end{itemize}
+
+On the basis of ``code modifying'', from the perspective of a programmer, to answer question ``When'', if situations are:
+
+\begin{itemize}
+    \item Only limited amonut of classes, with a pure design of structure,
+        removing the abstraction causes no harm to structure and lead to limited time and labor.
+\end{itemize}
+
+\section{Means of Alteration}\label{means}
+
+As illustrated above, one can reduce the \textit{Factory Pattern} to \textit{Simple Factory Pattern}
+as long as the conditions is set up. More specifically, to make the former perform like
+the latter at code-editing time or at runtime, we can, repectively:
+
+\begin{itemize}
+    \item\label{itm:programmer} Ignore the abstraction (should still do inheritance, or the code couldn't compile), then we can also create various brands and
+        multiple types of machines with ease. Once a factory contains two or more levels of abstraction,
+        say \texttt{AppleTVOLEDScreen} (see \ref{code-pro}, totally three levels \kora), then it works as a simple factory (ONE factory contains ALL!!!).
+    \item\label{itm:client} Ignore the concrete interface. Adopt \texttt{AppleFactory} to create an \texttt{AppleTV} as in \ref{code-cli} instead of
+        using \texttt{Factory} in section \ref{code}, then it performs just like a simple factory
+        \footnote{\textit{Simple Factory Pattern} uses \texttt{SimpleFactory} to build a simple-product.}
+        \footnote{Duck test: If it looks like a duck, swims like a duck, and quacks like a duck, then it probably is a duck.}.
+\end{itemize}
+
+\section{Conclusion}
+
+To conclude, we mentioned the details of two patterns with concrete example in section \ref{define} that
+\textit{Simple Factory Pattern} contains only an abstraction of the products,
+and the \textit{Factory Pattern} constructs itself with an abstraction of
+the factory itself, providing extendability and ability of alteration, avoiding
+modifications of the structurized code of the pattern or the interface.
+
+We illustrated the possible conditions in section \ref{condition} of the required reduction
+and multiple channels of modifying the code from the perspective of
+the client \ref{itm:client} and the programmer \ref{itm:programmer} in section \ref{means},
+described in \ref{code-cli} and \ref{code-pro} repectively.
+Hopefully we stated the problem and solutions correctly and accurately.
+
+\newpage
+
+\section{Appendix}\label{code}
+
+\subsection{Simple Factory}
+
+\begin{lstlisting}[language=java]
+    class SimpleFactory {
+        public Product createProduct(String type) {
+            Product newProduct;
+            /* case switching */
+            return newProduct;
+        }
+    }
+
+    public static void main(String[] args) {
+        SimpleFactory fty = new SimpleFactory();
+        Product p = fty.createProduct("type");
+    }
+\end{lstlisting}
+
+\subsection{Factory}
+
+\begin{lstlisting}[language=java]
+    abstract class Factory {
+        protected abstract Product createProduct(String type);
+    }
+
+    class AppleFactory extends Factory {
+        public Product createProduct(String type) {
+            Product newProduct;
+            /* case switching */
+            return newProduct;
+        }
+    }
+
+    class HaierFactory extends Factory {
+        public Product createProduct(String type) {
+            Product newProduct;
+            /* case switching */
+            return newProduct;
+        }
+    }
+
+    public static void main(String[] args) {
+        Factory[] fty = new Factory[2];
+        fty[0] = new AppleFactory();
+        fty[1] = new HaierFactory();
+        Product p1 = fty.createProduct("type");
+        Product p2 = fty.createProduct("type");
+    }
+\end{lstlisting}
+
+\newpage
+
+\subsection{Factory Reduction 1}\label{code-cli}
+
+\begin{lstlisting}[language=java]
+    /* . . . */
+
+    public static void main(String[] args) {
+        AppleFactory appleFty = new AppleFactory();
+        HaierFactory haierFty = new HaierFactory();
+        Product p1 = AppleFactory.createProduct("type");
+        Product p2 = HaierFactory.createProduct("type");
+    }
+\end{lstlisting}
+
+\subsection{Factory Reduction 2}\label{code-pro}
+\begin{lstlisting}[language=java]
+    /* . . . */
+
+    class AppleFactory extends Factory {
+        public Product createProduct(String type) {
+            Product newProduct;
+            if (type.equals("AppleTVLEDScreen")) {
+                /* . . . */
+            } else if (type.equals("AppleTVOLEDScreen")) {
+                /* . . . */
+            } else if (type.equals("AppleFridge...")) {
+                /* . . . */
+            } else {
+                /* . . . */
+            }
+            return newProduct;
+        }
+    }
+
+    /* . . . */
+\end{lstlisting}
+
+\end{document}

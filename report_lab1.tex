@@ -1,0 +1,412 @@
+\documentclass[a4paper]{article}
+
+\usepackage{titlesec}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{color}
+\usepackage[margin=1.2in]{geometry}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+\usepackage{commath}
+\usepackage{moreverb}
+\usepackage{amssymb,amsmath}
+
+\usepackage[colorlinks=true,
+            allcolors=green]{hyperref}
+
+\newcommand{\kora}{%
+(\raisebox{0.5em}{\rotatebox{-45}{)}}$^{\circ}{\scriptscriptstyle\Box}^{\circ}$)\raisebox{0.5em}{\rotatebox{-45}{)}}\rotatebox{90}{)}\raisebox{0.2em}{\LARGE \_\hskip-.1em\textvisiblespace\hskip-.1em\_}
+}
+
+\title{Analysis of Lab\_\#1: Hold Reference and Do Dirty Work,
+    A Bidirectional Observer Pattern}
+
+\makeatletter
+\renewcommand{\maketitle}{\bgroup\setlength{\parindent}{0pt}
+    \begin{center}
+
+        \textbf{\Large\@title} \\[12pt]
+
+
+        \par\vspace{\baselineskip}
+    \end{center}
+
+\egroup}
+\makeatother
+
+\titleformat{\section}
+{\large\bfseries}
+{\thesection}
+{0.5em}
+{}
+
+\lstset{
+    frame=single
+}
+
+\begin{document}
+\maketitle
+
+\section{Analysis of Lab}%
+\label{sec:analysis_of_lab}
+
+In this lab, as we will be realizing \textbf{case 4},
+we are required to implement a stock-investor program
+which is capable of providing the abstraction of behaviour like
+``customer buys a stock'', ``stock company raises up price'' and
+``customer sells the stock to earn some money (in response to
+the changing price)''. There are already some patterns like
+\textit{Observer Pattern} that sets the mechanism for
+single direction notifying and being updated. However,
+the former pattern is lack of effective strategy for
+situations resembling, say the back updating requirement of
+the stock price changing for the company when they come up with the infomation
+that their products are popular as they can force it up or vice versa, aiming at
+which the former pattern can never cope with, so we propose
+a bidirectional pattern, that is to say, to hold references on
+both sides, solving this problem. Note that we use Java language in
+this project and features of components will be in certain format
+\footnote{\underline{package}, \texttt{class}, \textbf{file}, \textsl{method}, \textit{pattern}}
+
+\section{Overall Design}%
+\label{sec:overall_design}
+
+In this section, we will illustrate the overall design of our lab work.
+From implementing abstrations on basic \textit{Observer Pattern}
+to modifying class contents to fix the back calling without reconstructing
+the concrete frame of the subject-observer structure.
+
+\subsection{Understanding Observer Pattern}%
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.5\textwidth]{obs.png}
+    \caption{UML Diagram of \textit{Observer Pattern}, there are
+    totally two interfaces (abstract classes) with a relationship of
+    composition, one should implement interfaces at left side of
+    the connection if it focuses on functions of being observered and
+    maintaining a collection of its observers, while the other should
+    expose an interface for being notified.
+}
+    \label{fig:obs_pattern}
+\end{figure}
+\label{sub:understanding_observer_pattern}
+
+So basically the \textit{Observer Pattern} simply emphasize a
+loose coupling connection between the two. Notice there it is only one channel
+for single way message passing so long as the subject does not expose an \textsl{update()} interface
+and adding new observer leads to no alteration in original code, conforming to open-close principle.
+
+\subsection{Why Original Observer Does Not Work}%
+\label{sub:why_original_observer_does_not_work}
+
+It seems hard to implement a single directional pattern on concrete examples
+like meeting the requirements in this lab which is in need of
+a message response for situations like ``client selling the stock to earn
+money'' (may incur a chain of calling). Thus, we propose a
+\textit{Bidirectional Observer Pattern} to solve the case 4.
+
+\subsection{Bidirectional Observer Pattern}%
+\label{sub:bidirectional_observer_pattern}
+
+Conceptually a \textit{Bidirectional Observer Pattern} is an idea
+consisting of holding a series of references for passing information across classes
+and exposing specific public interfaces for other subjects
+at sides so long as the individual class is hoping to sending
+messages and being called with notifications from others at the same time.
+
+ Say the \texttt{Subject} in \textit{Observer Pattern}
+maintaining a collection of observers  in side of its attribute list:
+$\{\left(S, O_i\right)|O_i \in \{ O_1, O_2, \ldots, O_n\}\}$
+\footnote{We denote $S$, $L$ and $O$ to be subject, logic and the observer respectively.}, while the sum
+relationship of subjects is a collection: $C_{S \to O} = \{\left(S_j, O_i\right)|O_i \in \{ O_1, O_2, \ldots, O_n\},
+S_j \in \{ S_1, S_2, \ldots, S_m\}\}$ for there are $n$ observers and $m$ subjects in
+the space, for at maximum of $n \times m$ tuples.
+
+On meeting the requirements of the lab, \texttt{Observer} also
+maintaining a set of references in side of its attribute list (\textsl{HashMap} here, for
+an additional mapping from \texttt{SubjectStock} to \texttt{ClientLogic}), as
+$\{ \left( O_i, \left( S_j, L_k \right)  \right) | \left( S_j, O_i \right) \in C_{S \to O} \}
+ \}$ ,where $ k = j $ and $L_k \in \{ L_1, L_2, \ldots, L_{mn} \} $.
+To be precise, there are $2 \times m \times n$ tuples in our design, without considering
+the mapping subset.
+
+\section{Method}%
+\label{sec:method}
+
+In this section, we mainly focus on detailed implementation of our pattern. We are trying to
+illustrate some key components of projects and pieces of tricky code.
+Also, disadvantages of this design will be discussed.
+
+\subsection{Key Components and Detailed Design}%
+\label{sub:key_components_and_detailed_design}
+
+\subsubsection{Core Classes}
+
+Considering key components, we've got (\underline{default package}):
+
+\begin{itemize}
+    \item \texttt{SubjectStock} described in \ref{sub:stocksubject}, the only task for this class
+        is to maintain a list of \texttt{ObserverClient} in \textsl{ArrayList} inside
+        of the class and expose a set of interfaces for the client to check price and do unregistering, \textit{etc}.
+    \item \texttt{ObserverClient} is described in \ref{sub:clientobserver}. The only task for this class
+        is to maintain a collection of mappings from \texttt{SubjectStock} to \texttt{ClientLogic} and expose
+        a set of interfaces for the stock to send messages and fetch object status.
+    \item \texttt{ClientLogic}, the value part of the \textsl{HashMap}
+        (see section \ref{sub:clientlogic}),
+        is responsible for maintaining the selling / holding strategy
+        for the stocks that the bargainers already bought in, which means to
+        return a bool value to represent: whether the client want a
+        notification or whether it would sell the stock in response to
+        the fluctuations of prices at current state.
+\end{itemize}
+
+\subsubsection{Strategies and Constraints}
+
+On meeting demands of this lab (to sell or hold), several strategies should
+be set:
+
+\begin{itemize}
+    \item Mapping from sold stocks to current price (see
+        \textbf{StockThresholdMapping.java} in \underline{helper}),
+        the method provides useful functions $amount \to price$ with a
+        an average step function.
+    \item Mapping from the threshold value $\abs{priceOld - priceNew}$
+        representing certain thresh that the customer
+        want to be notified with to a bool value, is described in
+        \textbf{ClientThresholdMappingUpdating.java}.
+    \item Being similar to above, there is also a function
+        $int \to bool$ answering whether the customer should
+        sell the stock or hold.
+\end{itemize}
+
+If we want to avoid situations resembling ``customer purchases
+a stock with a selling-threshold that too low to
+prevent a reselling immediately once the bargain is done as
+he thinks the current price is high enough'',
+we have to give a constraint to the conditions on not
+to sell stock if the customer harbours only one stock.
+
+\subsubsection{Tricky Implementation}
+
+So we've got $S \to C$ in each instance of \texttt{SubjectStock}
+and $C \to \left(S, L \right) $ in \texttt{ObserverClient}, now
+that a stock hopes to notify a customer (client), how could he
+possibly make that? Obviously using a public interface (if in Java)
+offered by the client solves this case. Further more, the client
+makes the same way to send message back as \texttt{SubjectStock} just
+gives \textsl{register(Observer newObs)} (see \ref{sub:stocksubject}).
+When being called \textsl{update()}, the client side just makes
+use of the \textsl{HashMap$<$S, L$>$},
+reacting with various behaviour repectively.
+
+The extraction of \texttt{ClientLogic} simplified the code structure with
+an independent instance for each of the $C \to S$. Maintaining the client's
+bargaining strategy and amounts of harbouring the, stock receives
+different answers from the client. Let's make it more straight forward,
+the chain of calling should be like this:
+
+
+\begin{algorithm}\label{algorithm}
+\caption{Chain of Recursive Calling}
+\begin{algorithmic}[1]
+    \REQUIRE $S \in C_{S}, C \in C_{C}, L \in C_{L}$
+    \STATE initialize $HashMap<S, L>$ and $Set<C>$ with $\emptyset$
+    \STATE customer $C$ buys a stock $S$
+    \STATE add $S$ and $L$ to $HashMap$
+    \STATE add $C$ to $Set$
+    \FORALL{$S$ in $HashMap$}
+        \IF{$L$ thinks $C_{i}$ should sell \AND size of $HashMap$ $>$ 1}
+        \STATE remove $S_{i}$ and $L_{i}$ from $HashMap$
+        \STATE remove $C_{i}$ from $Set$, jump to $11$
+        \ENDIF
+    \ENDFOR
+    \IF{\NOT $L$ amounts of stocks have changed}
+        \STATE jump to $19$
+    \ENDIF
+    \FORALL{$C$ in $Set$}
+        \IF{$L$ thinks $C$ should be notified}
+        \STATE notify $C_{i}$, jump to $5$
+        \ENDIF
+    \ENDFOR
+    \STATE done
+\end{algorithmic}
+\end{algorithm}
+
+What's more is the postponed removal of items in collections as it
+avoid a concurrent exception frequently happened in situations when
+a internal removal is called inside a loop of a set of itself. The
+details of the trick is described in \textbf{ObserverClient.java},
+method \textsl{update()}.
+
+\subsection{Tradeoff of Bidirection}%
+\label{sub:tradeoff_of_bidirection}
+
+As for bidirectional connection in between the two classes,
+there are lots of references pointing from one side to the other side.
+Actually those relationships lead to a tight coupling, whose
+methods seems hard to decompose or alternate with new methods
+inside of which.
+
+Although it breaks the principle encapsulation in some degree,
+the concrete task wouldn't need too much of the robust features
+we learned from our courses, let alone extracting a higher level abstraction
+than the original structure if not necessary
+\footnote{Occam's razor: Entities should not be multiplied without necessity.}.
+
+Apart from the tight coupling of the design, there somhow exists
+obstacle in the way users are trying to understand, say the
+chain of recursive calling and constraints in the \textsl{update()}.
+
+\section{Experiment}%
+\label{sec:experiment}
+
+Testing on cases which show ablation of conditions such as selling at certain thresholds,
+being notified at various thresholds, individual price strategy on each stock company,
+\textit{etc}, results are pasted from the console:
+
+\begin{boxedverbatim}
+At this notification A's price is from 10 to 50:
+D harbours 1 stock(s) (selling thresh: 0 for A) is holding A at 50
+At this notification C's price is from 0 to 25:
+D harbours 2 stock(s) (selling thresh: 0 for A) is selling A at 50
+D harbours 1 stock(s) (selling thresh: 45 for C) is holding C at 25
+At this notification B's price is from 5 to 18:
+D harbours 2 stock(s) (selling thresh: 200 for B) is holding B at 18
+D harbours 2 stock(s) (selling thresh: 45 for C) is holding C at 25
+At this notification C's price is from 25 to 100:
+D harbours 2 stock(s) (selling thresh: 200 for B) is holding B at 18
+D harbours 2 stock(s) (selling thresh: 45 for C) is selling C at 100
+At this notification C's price is from 100 to 50:
+E harbours 1 stock(s) (selling thresh: 90 for C) is holding C at 50
+At this notification C's price is from 50 to 100:
+E harbours 1 stock(s) (selling thresh: 90 for C) is holding C at 100
+F harbours 1 stock(s) (selling thresh: 200 for C) is holding C at 100
+At this notification B's price is from 18 to 31:
+D harbours 1 stock(s) (selling thresh: 200 for B) is holding B at 31
+E harbours 2 stock(s) (selling thresh: 40 for B) is holding B at 31
+E harbours 2 stock(s) (selling thresh: 90 for C) is selling C at 100
+\end{boxedverbatim}
+
+\section{Conclusion}%
+\label{sec:conclusion}
+
+In this report of the lab, we illustrated basic paradigm
+of the \textit{Observer Pattern} with UML diagram \ref{fig:obs_pattern} in
+section \ref{sec:overall_design}. Then we analysed the capacity
+of this pattern in \ref{sub:why_original_observer_does_not_work}
+and proposed our method concisely in \ref{sub:bidirectional_observer_pattern}.
+Meanwhile, we introduced our design with core components and
+illustrated some features of our design according to the
+requirements of the lab in \ref{sub:key_components_and_detailed_design}.
+We also mentioned there are some drawback of our design
+in \ref{sub:tradeoff_of_bidirection}. At the
+end, we demonstrated the results, saying that we had met all demands.
+
+\newpage
+
+\section{Appendix}%
+\label{sec:appendix}
+
+\subsection{StockSubject}%
+\label{sub:stocksubject}
+
+\begin{lstlisting}[language=java]
+/* doing import */
+
+public class SubjectStock implements Subject {
+        /* attribute list declaration */
+	private ArrayList<Observer> arr;
+
+	public SubjectStock (String name, int priceLow,
+            int priceHigh, int[] amountThresh) {
+            /* constructor */
+	}
+
+        /* public getter for client */
+	public int curPriceGetter() {}
+	public String getName() {}
+
+	@Override
+	public void register(Observer newObs) {
+            /* append observer into list */
+            /* doing price changing */
+	    notifyAllObservers();
+	}
+
+	@Override
+	public void unregister(Observer rmObs) {
+            /* remove observer from list */
+            /* doing price changing */
+	    if (this.arr.size() > 0) notifyAllObservers();
+	}
+
+	@Override
+	public void notifyAllObservers() {
+            /* print price changing */
+            /* loop through list,
+            * notify observer if they want to be */
+	}
+}
+\end{lstlisting}
+
+\newpage
+
+\subsection{ClientObserver}%
+\label{sub:clientobserver}
+
+\begin{lstlisting}[language=java]
+/* doing import */
+
+public class ObserverClient implements Observer {
+        /* attribute list declaration */
+	private HashMap<SubjectStock, ClientLogic> mapStock;
+
+        /* constructor */
+	public ObserverClient(String name) {}
+
+        /* buy stock, core method */
+	public void buyNewStock(SubjectStock stock, int amount,
+            int threshSell, int threshUpdate) {
+            mapStock.put(stock, ...);
+            stock.register(this);
+	}
+
+        /* public getter for stock */
+	public int amountGetter(SubjectStock stock) {}
+	public boolean hopingToBeNotified(SubjectStock stock,
+            int gap) {}
+
+	@Override
+        /* update, core method */
+	public void update() {
+            /* loop through HashMap<>
+            * if want to sell and harbour more than 1:
+            * sell stock, remove stock from HashMap
+            * and itself in arr in SubjectStock
+            * else:
+            * holding stock */
+	}
+}
+\end{lstlisting}
+
+\subsection{ClientLogic}%
+\label{sub:clientlogic}
+
+\begin{lstlisting}[language=java]
+class ClientLogic {
+        /* attribute list */
+
+        /* constructor */
+	ClientLogic(int amount, int threshSell, int threshUpdate {}
+
+        /* public getter for ClientObserver for conditions */
+	public boolean considerSellingAt(int curPrice) {}
+	public boolean considerBeingNotifiedAt(int gap) {}
+
+        /* public getter for logic of client */
+	public int getAmount() {}
+	public int getThresh() {}
+}
+\end{lstlisting}
+
+\end{document}
