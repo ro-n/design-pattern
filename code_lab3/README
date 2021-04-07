@@ -2,7 +2,7 @@ Software Design Pattern Lab3
 ============================
 
 This repo was done at 2019-11-12 21:44:12, mainly focus on solving threads
-problems with cplus, with command pattern wrapped while maintaining two threads
+problems with cplusplus, with command pattern wrapped while maintaining two threads
 queue.
 
 In order to make this repo run, one should type follow in:
